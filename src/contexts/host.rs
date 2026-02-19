@@ -1,10 +1,10 @@
 use crate::contexts::Context;
 use crossterm::event::KeyEvent;
 use ratatui::{
-    layout::{Constraint, Rect},
-    style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Paragraph, Row, Table},
     Frame,
+    layout::{Constraint, Rect},
+    style::{Modifier, Style},
+    widgets::{Block, Borders, Paragraph, Row, Table},
 };
 use std::fs;
 use zbus::blocking::{Connection, Proxy};
@@ -207,7 +207,9 @@ impl Context for HostContext {
     }
 
     fn draw(&self, f: &mut Frame, area: Rect) {
-        let block = Block::default().title(" Host Information ").borders(Borders::ALL);
+        let block = Block::default()
+            .title(" Host Information ")
+            .borders(Borders::ALL);
 
         if let Some(ref error) = self.error {
             let error_text = Paragraph::new(format!("Error: {}", error)).block(block);
@@ -230,9 +232,12 @@ impl Context for HostContext {
             ];
 
             let table = Table::new(rows, vec![Constraint::Length(20), Constraint::Min(30)])
-                .header(Row::new(vec!["Property", "Value"]).style(Style::default().add_modifier(Modifier::BOLD)))
+                .header(
+                    Row::new(vec!["Property", "Value"])
+                        .style(Style::default().add_modifier(Modifier::BOLD)),
+                )
                 .block(block)
-                .row_highlight_style(Style::default().bg(Color::DarkGray));
+                .row_highlight_style(Style::default().bg(crate::palette::dark_gray()));
 
             f.render_widget(table, area);
         } else {

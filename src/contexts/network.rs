@@ -2,11 +2,11 @@ use crate::contexts::Context;
 use anyhow::Result;
 use crossterm::event::KeyEvent;
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
-    Frame,
 };
 use std::collections::HashMap;
 use std::ffi::CStr;
@@ -44,10 +44,7 @@ impl NetworkInfo {
         let interfaces = Self::get_interfaces()?;
         let routes = Self::get_routes()?;
 
-        Ok(Self {
-            interfaces,
-            routes,
-        })
+        Ok(Self { interfaces, routes })
     }
 
     fn get_interfaces() -> Result<Vec<Interface>> {
@@ -204,7 +201,9 @@ impl NetworkInfo {
     fn extract_json_u32(content: &str, key: &str) -> Option<u32> {
         if let Some(start) = content.find(key) {
             let after_key = &content[start + key.len()..];
-            let end = after_key.find(|c: char| !c.is_ascii_digit()).unwrap_or(after_key.len());
+            let end = after_key
+                .find(|c: char| !c.is_ascii_digit())
+                .unwrap_or(after_key.len());
             return after_key[..end].parse().ok();
         }
         None
@@ -263,8 +262,7 @@ impl NetworkContext {
         }
     }
 
-    fn refresh(&mut self,
-    ) {
+    fn refresh(&mut self) {
         let (info, error) = match NetworkInfo::gather() {
             Ok(info) => (Some(info), None),
             Err(e) => (None, Some(format!("Failed to gather network info: {}", e))),
@@ -275,15 +273,13 @@ impl NetworkContext {
         self.scroll_offset = 0;
     }
 
-    fn move_up(&mut self,
-    ) {
+    fn move_up(&mut self) {
         if self.selected_interface > 0 {
             self.selected_interface -= 1;
         }
     }
 
-    fn move_down(&mut self,
-    ) {
+    fn move_down(&mut self) {
         if let Some(ref info) = self.info {
             if !info.interfaces.is_empty() && self.selected_interface + 1 < info.interfaces.len() {
                 self.selected_interface += 1;
@@ -291,27 +287,24 @@ impl NetworkContext {
         }
     }
 
-    fn page_up(&mut self,
-    ) {
+    fn page_up(&mut self) {
         self.selected_interface = self.selected_interface.saturating_sub(5);
     }
 
-    fn page_down(&mut self,
-    ) {
+    fn page_down(&mut self) {
         if let Some(ref info) = self.info {
             if !info.interfaces.is_empty() {
-                self.selected_interface = (self.selected_interface + 5).min(info.interfaces.len() - 1);
+                self.selected_interface =
+                    (self.selected_interface + 5).min(info.interfaces.len() - 1);
             }
         }
     }
 
-    fn go_top(&mut self,
-    ) {
+    fn go_top(&mut self) {
         self.selected_interface = 0;
     }
 
-    fn go_bottom(&mut self,
-    ) {
+    fn go_bottom(&mut self) {
         if let Some(ref info) = self.info {
             if !info.interfaces.is_empty() {
                 self.selected_interface = info.interfaces.len() - 1;
@@ -338,14 +331,19 @@ impl Context for NetworkContext {
         draw_routes(self, f, chunks[1]);
     }
 
-    fn handle_key(&mut self, key: KeyEvent,
-    ) {
+    fn handle_key(&mut self, key: KeyEvent) {
         match key.code {
             crossterm::event::KeyCode::Char('r') => self.refresh(),
-            crossterm::event::KeyCode::Char('j') | crossterm::event::KeyCode::Down => self.move_down(),
+            crossterm::event::KeyCode::Char('j') | crossterm::event::KeyCode::Down => {
+                self.move_down()
+            }
             crossterm::event::KeyCode::Char('k') | crossterm::event::KeyCode::Up => self.move_up(),
-            crossterm::event::KeyCode::Char(' ') | crossterm::event::KeyCode::PageDown => self.page_down(),
-            crossterm::event::KeyCode::Char('b') | crossterm::event::KeyCode::PageUp => self.page_up(),
+            crossterm::event::KeyCode::Char(' ') | crossterm::event::KeyCode::PageDown => {
+                self.page_down()
+            }
+            crossterm::event::KeyCode::Char('b') | crossterm::event::KeyCode::PageUp => {
+                self.page_up()
+            }
             crossterm::event::KeyCode::Char('g') => self.go_top(),
             crossterm::event::KeyCode::Char('G') => self.go_bottom(),
             _ => {}
@@ -380,19 +378,19 @@ fn draw_interfaces(ctx: &NetworkContext, f: &mut Frame, area: Rect) {
             let is_selected = i == ctx.selected_interface;
 
             let state_color = match iface.state.as_str() {
-                "up" => Color::Green,
-                "down" => Color::Red,
-                _ => Color::Yellow,
+                "up" => crate::palette::green(),
+                "down" => crate::palette::red(),
+                _ => crate::palette::yellow(),
             };
 
             let name_style = if is_selected {
                 Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Cyan)
+                    .fg(crate::palette::black())
+                    .bg(crate::palette::cyan())
                     .add_modifier(Modifier::BOLD)
             } else {
                 Style::default()
-                    .fg(Color::Cyan)
+                    .fg(crate::palette::cyan())
                     .add_modifier(Modifier::BOLD)
             };
 
@@ -405,11 +403,11 @@ fn draw_interfaces(ctx: &NetworkContext, f: &mut Frame, area: Rect) {
                 ),
                 Span::styled(
                     format!("RX: {:>10}  ", NetworkInfo::format_bytes(iface.rx_bytes)),
-                    Style::default().fg(Color::Blue),
+                    Style::default().fg(crate::palette::blue()),
                 ),
                 Span::styled(
                     format!("TX: {:>10}", NetworkInfo::format_bytes(iface.tx_bytes)),
-                    Style::default().fg(Color::Green),
+                    Style::default().fg(crate::palette::green()),
                 ),
             ]);
             lines.push(header_line);
@@ -418,27 +416,26 @@ fn draw_interfaces(ctx: &NetworkContext, f: &mut Frame, area: Rect) {
             if let Some(ref mac) = iface.mac {
                 lines.push(Line::from(vec![
                     Span::raw("             MAC: "),
-                    Span::styled(mac, Style::default().fg(Color::Gray)),
+                    Span::styled(mac, Style::default().fg(crate::palette::gray())),
                 ]));
             }
 
             // IPv4 addresses
             for (j, ip) in iface.ipv4.iter().enumerate() {
                 let label = if j == 0 { "IPv4: " } else { "      " };
-                lines.push(Line::from(vec![
-                    Span::raw(format!("             {}{}", label, ip)),
-                ]));
+                lines.push(Line::from(vec![Span::raw(format!(
+                    "             {}{}",
+                    label, ip
+                ))]));
             }
 
             // IPv6 addresses (with enough width)
             for (j, ip) in iface.ipv6.iter().enumerate() {
                 let label = if j == 0 { "IPv6: " } else { "      " };
-                lines.push(Line::from(vec![
-                    Span::styled(
-                        format!("             {}{}", label, ip),
-                        Style::default().fg(Color::Yellow),
-                    ),
-                ]));
+                lines.push(Line::from(vec![Span::styled(
+                    format!("             {}{}", label, ip),
+                    Style::default().fg(crate::palette::yellow()),
+                )]));
             }
 
             // Empty line between interfaces (except last)
@@ -472,24 +469,40 @@ fn draw_routes(ctx: &NetworkContext, f: &mut Frame, area: Rect) {
             .routes
             .iter()
             .filter(|r| r.destination == "default")
-            .chain(info.routes.iter().filter(|r| r.destination != "default").take(3))
+            .chain(
+                info.routes
+                    .iter()
+                    .filter(|r| r.destination != "default")
+                    .take(3),
+            )
             .collect();
 
         let mut lines: Vec<Line> = Vec::new();
 
         for route in important_routes {
             let dest = if route.destination == "default" {
-                Span::styled("default", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+                Span::styled(
+                    "default",
+                    Style::default()
+                        .fg(crate::palette::yellow())
+                        .add_modifier(Modifier::BOLD),
+                )
             } else {
                 Span::raw(route.destination.clone())
             };
 
             let gateway = route.gateway.clone().unwrap_or_else(|| "-".to_string());
-            let metric = route.metric.map(|m| format!("{}", m)).unwrap_or_else(|| "-".to_string());
+            let metric = route
+                .metric
+                .map(|m| format!("{}", m))
+                .unwrap_or_else(|| "-".to_string());
 
             lines.push(Line::from(vec![
                 dest,
-                Span::raw(format!(" via {} on {} (metric {})", gateway, route.interface, metric)),
+                Span::raw(format!(
+                    " via {} on {} (metric {})",
+                    gateway, route.interface, metric
+                )),
             ]));
         }
 

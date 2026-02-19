@@ -1,5 +1,5 @@
 use ratatui::{
-    style::{Color, Style},
+    style::Style,
     widgets::{Block, Borders, Widget},
 };
 
@@ -15,7 +15,7 @@ impl Widget for StatusBar {
     fn render(self, area: ratatui::layout::Rect, buf: &mut ratatui::buffer::Buffer) {
         let block = Block::default()
             .borders(Borders::TOP)
-            .border_style(Style::default().fg(Color::Gray));
+            .border_style(Style::default().fg(crate::palette::gray()));
         block.render(area, buf);
     }
 }

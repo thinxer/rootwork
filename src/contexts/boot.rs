@@ -2,11 +2,11 @@ use crate::contexts::Context;
 use anyhow::Result;
 use crossterm::event::KeyEvent;
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
-    text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Row, Table},
     Frame,
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{Modifier, Style},
+    text::Span,
+    widgets::{Block, Borders, Paragraph, Row, Table},
 };
 use std::path::Path;
 
@@ -40,7 +40,8 @@ impl BootInfo {
         let secure_boot = Self::check_secure_boot();
 
         Ok(Self {
-            systemd_boot: Path::new("/boot/EFI/systemd").exists() || Path::new("/efi/EFI/systemd").exists(),
+            systemd_boot: Path::new("/boot/EFI/systemd").exists()
+                || Path::new("/efi/EFI/systemd").exists(),
             firmware: "unknown".to_string(),
             loader_version: "unknown".to_string(),
             secure_boot,
@@ -53,10 +54,7 @@ impl BootInfo {
         let mut entries = Vec::new();
 
         // Check common bootloader paths
-        let paths = [
-            "/boot/loader/entries",
-            "/efi/loader/entries",
-        ];
+        let paths = ["/boot/loader/entries", "/efi/loader/entries"];
 
         for path in &paths {
             if let Ok(dir) = std::fs::read_dir(path) {
@@ -129,8 +127,7 @@ impl BootContext {
         }
     }
 
-    fn refresh(&mut self,
-    ) {
+    fn refresh(&mut self) {
         let (info, error) = match BootInfo::gather() {
             Ok(info) => (Some(info), None),
             Err(e) => (None, Some(format!("Failed to gather boot info: {}", e))),
@@ -140,8 +137,7 @@ impl BootContext {
         self.selected_entry = 0;
     }
 
-    fn move_up(&mut self,
-    ) {
+    fn move_up(&mut self) {
         if let Some(ref info) = self.info {
             if !info.entries.is_empty() && self.selected_entry > 0 {
                 self.selected_entry -= 1;
@@ -149,8 +145,7 @@ impl BootContext {
         }
     }
 
-    fn move_down(&mut self,
-    ) {
+    fn move_down(&mut self) {
         if let Some(ref info) = self.info {
             if !info.entries.is_empty() && self.selected_entry + 1 < info.entries.len() {
                 self.selected_entry += 1;
@@ -177,11 +172,12 @@ impl Context for BootContext {
         draw_boot_entries(self, f, chunks[1]);
     }
 
-    fn handle_key(&mut self, key: KeyEvent,
-    ) {
+    fn handle_key(&mut self, key: KeyEvent) {
         match key.code {
             crossterm::event::KeyCode::Char('r') => self.refresh(),
-            crossterm::event::KeyCode::Char('j') | crossterm::event::KeyCode::Down => self.move_down(),
+            crossterm::event::KeyCode::Char('j') | crossterm::event::KeyCode::Down => {
+                self.move_down()
+            }
             crossterm::event::KeyCode::Char('k') | crossterm::event::KeyCode::Up => self.move_up(),
             _ => {}
         }
@@ -215,11 +211,8 @@ fn draw_firmware_info(ctx: &BootContext, f: &mut Frame, area: Rect) {
             Row::new(vec!["Setup Mode", &info.setup_mode]),
         ];
 
-        let table = Table::new(rows, vec![
-            Constraint::Length(14),
-            Constraint::Min(40),
-        ])
-        .block(block);
+        let table =
+            Table::new(rows, vec![Constraint::Length(14), Constraint::Min(40)]).block(block);
 
         f.render_widget(table, area);
     } else {
@@ -250,14 +243,14 @@ fn draw_boot_entries(ctx: &BootContext, f: &mut Frame, area: Rect) {
             .map(|(i, entry)| {
                 let style = if i == ctx.selected_entry {
                     Style::default()
-                        .bg(Color::DarkGray)
+                        .bg(crate::palette::dark_gray())
                         .add_modifier(Modifier::BOLD)
                 } else {
                     Style::default()
                 };
 
                 let default_indicator = if entry.is_default {
-                    Span::styled("★", Style::default().fg(Color::Yellow))
+                    Span::styled("★", Style::default().fg(crate::palette::yellow()))
                 } else {
                     Span::raw("")
                 };
@@ -266,18 +259,24 @@ fn draw_boot_entries(ctx: &BootContext, f: &mut Frame, area: Rect) {
                     default_indicator,
                     Span::raw(entry.title.clone()),
                     Span::raw(entry.version.clone().unwrap_or_else(|| "-".to_string())),
-                    Span::styled(entry.id.clone(), Style::default().fg(Color::Gray)),
+                    Span::styled(
+                        entry.id.clone(),
+                        Style::default().fg(crate::palette::gray()),
+                    ),
                 ])
                 .style(style)
             })
             .collect();
 
-        let table = Table::new(rows, vec![
-            Constraint::Length(8),
-            Constraint::Length(30),
-            Constraint::Length(15),
-            Constraint::Min(20),
-        ])
+        let table = Table::new(
+            rows,
+            vec![
+                Constraint::Length(8),
+                Constraint::Length(30),
+                Constraint::Length(15),
+                Constraint::Min(20),
+            ],
+        )
         .header(header)
         .block(block);
 

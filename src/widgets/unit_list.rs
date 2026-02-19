@@ -1,5 +1,5 @@
 use ratatui::{
-    style::{Color, Style},
+    style::Style,
     widgets::{Block, Borders, Widget},
 };
 
@@ -16,7 +16,7 @@ impl Widget for UnitList {
         let block = Block::default()
             .title(" Units ")
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::White));
+            .border_style(Style::default().fg(crate::palette::white()));
         block.render(area, buf);
     }
 }

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use zbus::{proxy, Connection};
+use zbus::{Connection, proxy};
 
 /// Detect if running as root
 pub fn is_root() -> bool {
@@ -14,9 +14,24 @@ pub fn is_root() -> bool {
 )]
 trait SystemdManager {
     /// List all units
-    /// Returns: [(name, description, load_state, active_state, sub_state, 
+    /// Returns: [(name, description, load_state, active_state, sub_state,
     ///           follower, object_path, job_id, job_type, job_object_path)]
-    fn list_units(&self) -> zbus::Result<Vec<(String, String, String, String, String, String, zbus::zvariant::OwnedObjectPath, u32, String, zbus::zvariant::OwnedObjectPath)>>;
+    fn list_units(
+        &self,
+    ) -> zbus::Result<
+        Vec<(
+            String,
+            String,
+            String,
+            String,
+            String,
+            String,
+            zbus::zvariant::OwnedObjectPath,
+            u32,
+            String,
+            zbus::zvariant::OwnedObjectPath,
+        )>,
+    >;
 
     /// Get unit by name
     fn get_unit(&self, name: &str) -> zbus::Result<zbus::zvariant::OwnedObjectPath>;
@@ -28,16 +43,26 @@ trait SystemdManager {
     fn stop_unit(&self, name: &str, mode: &str) -> zbus::Result<zbus::zvariant::OwnedObjectPath>;
 
     /// Restart a unit
-    fn restart_unit(&self, name: &str, mode: &str) -> zbus::Result<zbus::zvariant::OwnedObjectPath>;
+    fn restart_unit(&self, name: &str, mode: &str)
+    -> zbus::Result<zbus::zvariant::OwnedObjectPath>;
 
     /// Reload daemon
     fn reload(&self) -> zbus::Result<()>;
 
     /// Enable unit files
-    fn enable_unit_files(&self, files: &[&str], runtime: bool, force: bool) -> zbus::Result<(bool, Vec<(String, String, String)>)>;
+    fn enable_unit_files(
+        &self,
+        files: &[&str],
+        runtime: bool,
+        force: bool,
+    ) -> zbus::Result<(bool, Vec<(String, String, String)>)>;
 
     /// Disable unit files
-    fn disable_unit_files(&self, files: &[&str], runtime: bool) -> zbus::Result<Vec<(String, String, String)>>;
+    fn disable_unit_files(
+        &self,
+        files: &[&str],
+        runtime: bool,
+    ) -> zbus::Result<Vec<(String, String, String)>>;
 }
 
 #[derive(Clone)]
@@ -61,7 +86,10 @@ impl SystemdClient {
                     (conn, true)
                 }
                 Err(e) => {
-                    tracing::warn!("Failed to connect to user session: {}, trying system bus", e);
+                    tracing::warn!(
+                        "Failed to connect to user session: {}, trying system bus",
+                        e
+                    );
                     let conn = Connection::system().await?;
                     tracing::info!("Connected to system D-Bus (read-only for non-root)");
                     (conn, false)
@@ -92,15 +120,17 @@ impl SystemdClient {
 
         let unit_info: Vec<UnitInfo> = units
             .into_iter()
-            .map(|(name, description, load_state, active_state, sub_state, _, _, _, _, _)| {
-                UnitInfo {
-                    name,
-                    description,
-                    load_state,
-                    active_state,
-                    sub_state,
-                }
-            })
+            .map(
+                |(name, description, load_state, active_state, sub_state, _, _, _, _, _)| {
+                    UnitInfo {
+                        name,
+                        description,
+                        load_state,
+                        active_state,
+                        sub_state,
+                    }
+                },
+            )
             .collect();
 
         Ok(unit_info)

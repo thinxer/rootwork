@@ -1,21 +1,22 @@
 use anyhow::Result;
 use crossterm::{
-    event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     ExecutableCommand,
+    event::{self, Event, KeyCode, KeyEvent, KeyEventKind},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use ratatui::{
+    Frame, Terminal,
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Tabs, Wrap},
-    Frame, Terminal,
 };
-use std::io::{stdout, Stdout};
+use std::io::{Stdout, stdout};
 
 mod app;
 mod contexts;
+mod palette;
 mod systemd;
 mod widgets;
 
@@ -164,7 +165,11 @@ fn draw_header(f: &mut Frame, app: &App, area: Rect) {
     };
     let title_text = format!("🐾 rootwork\n{}", mode_indicator);
     let title = Paragraph::new(title_text)
-        .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+        .style(
+            Style::default()
+                .fg(crate::palette::cyan())
+                .add_modifier(Modifier::BOLD),
+        )
         .block(Block::default().borders(Borders::ALL));
     f.render_widget(title, header_layout[0]);
 
@@ -179,10 +184,10 @@ fn draw_header(f: &mut Frame, app: &App, area: Rect) {
     ];
     let tabs = Tabs::new(titles)
         .select(app.current_context())
-        .style(Style::default().fg(Color::White))
+        .style(Style::default().fg(crate::palette::white()))
         .highlight_style(
             Style::default()
-                .fg(Color::Green)
+                .fg(crate::palette::green())
                 .add_modifier(Modifier::BOLD),
         )
         .divider(" | ")
@@ -220,7 +225,9 @@ fn draw_status(f: &mut Frame, app: &App, area: Rect) {
         Span::raw("j:down k:up sp:pg t:view s:sort e:xpnd c:clps /:fltr r:ref ?:help "),
         Span::styled(
             "q:quit",
-            Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(crate::palette::red())
+                .add_modifier(Modifier::BOLD),
         ),
     ]);
     let status_bar = Paragraph::new(status);
@@ -229,7 +236,8 @@ fn draw_status(f: &mut Frame, app: &App, area: Rect) {
 
 fn draw_help(f: &mut Frame, app: &App) {
     let help_text = match app.current_context() {
-        0 => r#"Units View (Tree mode default):
+        0 => {
+            r#"Units View (Tree mode default):
     j, ↓          Down        k, ↑          Up
     g             Top         G             Bottom
     Space, PgDn   Page down   b, PgUp       Page up
@@ -238,31 +246,42 @@ fn draw_help(f: &mut Frame, app: &App) {
     e             Expand all  c             Collapse all
     t             Toggle tree/list view
     s             Toggle sort (name/state)
-    S             Toggle sort direction"#,
+    S             Toggle sort direction"#
+        }
 
-        1 => r#"Network View:
+        1 => {
+            r#"Network View:
     j, ↓          Down        k, ↑          Up
-    r             Refresh"#,
+    r             Refresh"#
+        }
 
-        2 => r#"DNS View:
+        2 => {
+            r#"DNS View:
     j, ↓          Down        k, ↑          Up
-    r             Refresh"#,
+    r             Refresh"#
+        }
 
-        3 => r#"Host View:
-    r             Refresh host information"#,
+        3 => {
+            r#"Host View:
+    r             Refresh host information"#
+        }
 
-        4 => r#"Boot View:
+        4 => {
+            r#"Boot View:
     j, ↓          Down        k, ↑          Up
-    r             Refresh"#,
+    r             Refresh"#
+        }
 
-        5 => r#"Logs View:
+        5 => {
+            r#"Logs View:
     j, ↓          Down        k, ↑          Up
     g             Top         G             Bottom (follow)
     Space, PgDn   Page down   b, PgUp       Page up
     p             Pause/unpause streaming
     f             Toggle follow mode
     c             Clear logs
-    r             Refresh/reload"#,
+    r             Refresh/reload"#
+        }
 
         _ => "Unknown context",
     };
@@ -283,7 +302,7 @@ Press any key to close this help"#;
     let block = Block::default()
         .title(format!(" Help - {} ", app.context_name()))
         .borders(Borders::ALL)
-        .style(Style::default().bg(Color::Black));
+        .style(Style::default().bg(crate::palette::black()));
 
     let help = Paragraph::new(full_help)
         .block(block)

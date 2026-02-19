@@ -1,5 +1,5 @@
 use ratatui::{
-    style::{Color, Style},
+    style::Style,
     widgets::{Block, Borders, Clear, Paragraph, Widget},
 };
 
@@ -12,8 +12,7 @@ impl Help {
         Self { visible: false }
     }
 
-    pub fn toggle(&mut self,
-    ) {
+    pub fn toggle(&mut self) {
         self.visible = !self.visible;
     }
 }
@@ -27,8 +26,8 @@ impl Widget for Help {
         let block = Block::default()
             .title(" Help ")
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Yellow))
-            .style(Style::default().bg(Color::Black));
+            .border_style(Style::default().fg(crate::palette::yellow()))
+            .style(Style::default().bg(crate::palette::black()));
 
         let help_text = r#"Rootwork - systemd TUI
 

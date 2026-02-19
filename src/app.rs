@@ -1,11 +1,6 @@
 use crate::contexts::{
-    boot::BootContext,
-    dns::DnsContext,
-    host::HostContext,
-    logs::LogsContext,
-    network::NetworkContext,
-    units::UnitsContext,
-    Context,
+    Context, boot::BootContext, dns::DnsContext, host::HostContext, logs::LogsContext,
+    network::NetworkContext, units::UnitsContext,
 };
 use crate::systemd::client::SystemdClient;
 use anyhow::Result;
@@ -77,9 +72,7 @@ impl App {
         }
     }
 
-    pub fn set_context(&mut self,
-        ctx: usize,
-    ) {
+    pub fn set_context(&mut self, ctx: usize) {
         if ctx < 6 {
             self.current_context = ctx;
         }
@@ -93,9 +86,7 @@ impl App {
         self.show_help
     }
 
-    pub fn handle_key(&mut self,
-        key: KeyEvent,
-    ) {
+    pub fn handle_key(&mut self, key: KeyEvent) {
         if self.show_help {
             // Any key closes help
             self.show_help = false;
@@ -160,14 +151,11 @@ impl App {
         self.error_message.as_deref()
     }
 
-    pub fn set_error(&mut self,
-        msg: String,
-    ) {
+    pub fn set_error(&mut self, msg: String) {
         self.error_message = Some(msg);
     }
 
-    pub fn clear_error(&mut self,
-    ) {
+    pub fn clear_error(&mut self) {
         self.error_message = None;
     }
 }

@@ -7,10 +7,7 @@ impl Journal {
         Ok(Self)
     }
 
-    pub async fn get_logs(
-        _unit: Option<&str>,
-        _lines: usize,
-    ) -> Result<Vec<LogEntry>> {
+    pub async fn get_logs(_unit: Option<&str>, _lines: usize) -> Result<Vec<LogEntry>> {
         // TODO: Implement via libsystemd
         Ok(vec![])
     }

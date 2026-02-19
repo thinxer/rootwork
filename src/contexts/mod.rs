@@ -1,15 +1,12 @@
-pub mod units;
-pub mod network;
+pub mod boot;
 pub mod dns;
 pub mod host;
-pub mod boot;
 pub mod logs;
+pub mod network;
+pub mod units;
 
-use ratatui::{
-    layout::Rect,
-    Frame,
-};
 use crossterm::event::KeyEvent;
+use ratatui::{Frame, layout::Rect};
 
 /// Trait for all context views
 pub trait Context {

@@ -3,11 +3,11 @@ use crate::systemd::client::{SystemdClient, UnitInfo};
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph, Row, Table},
-    Frame,
 };
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
@@ -37,8 +37,14 @@ pub enum SortBy {
 /// An item in the tree view - either a group or a unit
 #[derive(Debug, Clone)]
 pub enum TreeItem {
-    Group { name: String, count: usize, active: usize },
-    Unit { unit: UnitInfo },
+    Group {
+        name: String,
+        count: usize,
+        active: usize,
+    },
+    Unit {
+        unit: UnitInfo,
+    },
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -133,9 +139,7 @@ impl UnitsContext {
         Ok(ctx)
     }
 
-    pub async fn refresh(&mut self,
-        systemd: &SystemdClient,
-    ) {
+    pub async fn refresh(&mut self, systemd: &SystemdClient) {
         self.loading = true;
         self.error = None;
 
@@ -152,15 +156,10 @@ impl UnitsContext {
         }
     }
 
-    fn apply_filter_and_sort(&mut self,
-    ) {
+    fn apply_filter_and_sort(&mut self) {
         // Filter + fuzzy ranking
         let mut ranked_units: Vec<(UnitInfo, Option<usize>)> = if self.filter.is_empty() {
-            self.units
-                .iter()
-                .cloned()
-                .map(|u| (u, None))
-                .collect()
+            self.units.iter().cloned().map(|u| (u, None)).collect()
         } else {
             let needle = self.filter.trim().to_lowercase();
             self.units
@@ -194,7 +193,10 @@ impl UnitsContext {
             let base_cmp = if fuzzy_cmp == Ordering::Equal {
                 match self.sort_by {
                     SortBy::Name => a.name.cmp(&b.name),
-                    SortBy::State => a.active_state.cmp(&b.active_state).then_with(|| a.name.cmp(&b.name)),
+                    SortBy::State => a
+                        .active_state
+                        .cmp(&b.active_state)
+                        .then_with(|| a.name.cmp(&b.name)),
                 }
             } else {
                 fuzzy_cmp
@@ -227,8 +229,7 @@ impl UnitsContext {
         }
     }
 
-    fn rebuild_tree_items(&mut self,
-    ) {
+    fn rebuild_tree_items(&mut self) {
         self.tree_items.clear();
 
         // Group units by type
@@ -291,8 +292,7 @@ impl UnitsContext {
         }
     }
 
-    fn toggle_view_mode(&mut self,
-    ) {
+    fn toggle_view_mode(&mut self) {
         self.view_mode = match self.view_mode {
             ViewMode::List => ViewMode::Tree,
             ViewMode::Tree => ViewMode::List,
@@ -304,8 +304,7 @@ impl UnitsContext {
         }
     }
 
-    fn toggle_sort(&mut self,
-    ) {
+    fn toggle_sort(&mut self) {
         self.sort_by = match self.sort_by {
             SortBy::Name => SortBy::State,
             SortBy::State => SortBy::Name,
@@ -313,14 +312,12 @@ impl UnitsContext {
         self.apply_filter_and_sort();
     }
 
-    fn toggle_sort_direction(&mut self,
-    ) {
+    fn toggle_sort_direction(&mut self) {
         self.sort_ascending = !self.sort_ascending;
         self.apply_filter_and_sort();
     }
 
-    fn toggle_current_group(&mut self,
-    ) {
+    fn toggle_current_group(&mut self) {
         if self.view_mode != ViewMode::Tree {
             return;
         }
@@ -338,14 +335,12 @@ impl UnitsContext {
         }
     }
 
-    fn expand_all(&mut self,
-    ) {
+    fn expand_all(&mut self) {
         self.collapsed_groups.clear();
         self.rebuild_tree_items();
     }
 
-    fn collapse_all(&mut self,
-    ) {
+    fn collapse_all(&mut self) {
         // Add all group names to collapsed set
         self.collapsed_groups.clear();
         for item in &self.tree_items {
@@ -356,15 +351,13 @@ impl UnitsContext {
         self.rebuild_tree_items();
     }
 
-    fn move_up(&mut self,
-    ) {
+    fn move_up(&mut self) {
         if self.selected > 0 {
             self.selected -= 1;
         }
     }
 
-    fn move_down(&mut self,
-    ) {
+    fn move_down(&mut self) {
         let max = match self.view_mode {
             ViewMode::List => self.filtered_units.len(),
             ViewMode::Tree => self.tree_items.len(),
@@ -374,13 +367,11 @@ impl UnitsContext {
         }
     }
 
-    fn go_top(&mut self,
-    ) {
+    fn go_top(&mut self) {
         self.selected = 0;
     }
 
-    fn go_bottom(&mut self,
-    ) {
+    fn go_bottom(&mut self) {
         let max = match self.view_mode {
             ViewMode::List => self.filtered_units.len(),
             ViewMode::Tree => self.tree_items.len(),
@@ -390,15 +381,11 @@ impl UnitsContext {
         }
     }
 
-    fn page_up(&mut self,
-        page_size: usize,
-    ) {
+    fn page_up(&mut self, page_size: usize) {
         self.selected = self.selected.saturating_sub(page_size);
     }
 
-    fn page_down(&mut self,
-        page_size: usize,
-    ) {
+    fn page_down(&mut self, page_size: usize) {
         let max = match self.view_mode {
             ViewMode::List => self.filtered_units.len(),
             ViewMode::Tree => self.tree_items.len(),
@@ -406,8 +393,7 @@ impl UnitsContext {
         self.selected = (self.selected + page_size).min(max.saturating_sub(1));
     }
 
-    fn get_total_items(&self,
-    ) -> usize {
+    fn get_total_items(&self) -> usize {
         match self.view_mode {
             ViewMode::List => self.filtered_units.len(),
             ViewMode::Tree => self.tree_items.len(),
@@ -583,9 +569,7 @@ impl Context for UnitsContext {
         }
     }
 
-    fn handle_key(&mut self,
-        key: KeyEvent,
-    ) {
+    fn handle_key(&mut self, key: KeyEvent) {
         if self.detail_unit.is_some() {
             if self.confirm_action.is_some() {
                 match key.code {
@@ -690,7 +674,7 @@ impl Context for UnitsContext {
                     self.filter_backup = Some(self.filter.clone());
                 }
                 self.show_filter = true;
-            },
+            }
             KeyCode::Char('t') => self.toggle_view_mode(),
             KeyCode::Char('s') => self.toggle_sort(),
             KeyCode::Char('S') => self.toggle_sort_direction(),
@@ -713,8 +697,7 @@ impl Context for UnitsContext {
         }
     }
 
-    async fn tick(&mut self,
-    ) {
+    async fn tick(&mut self) {
         if let Some(action) = self.pending_action.take() {
             if let Some(unit) = self.detail_unit.clone() {
                 let result = match action {
@@ -758,9 +741,7 @@ fn draw_unit_list(ctx: &UnitsContext, f: &mut Frame, area: Rect, visible_rows: u
         format!(" Units ({}){} ", ctx.filtered_units.len(), sort_indicator)
     };
 
-    let block = Block::default()
-        .title(title)
-        .borders(Borders::ALL);
+    let block = Block::default().title(title).borders(Borders::ALL);
 
     if ctx.loading {
         let loading = Paragraph::new("Loading units...").block(block);
@@ -800,35 +781,41 @@ fn draw_unit_list(ctx: &UnitsContext, f: &mut Frame, area: Rect, visible_rows: u
             let actual_idx = scroll_offset + i;
             let style = if actual_idx == ctx.selected {
                 Style::default()
-                    .bg(Color::DarkGray)
+                    .bg(crate::palette::dark_gray())
                     .add_modifier(Modifier::BOLD)
             } else {
                 Style::default()
             };
 
             let state_color = match unit.active_state.as_str() {
-                "active" => Color::Green,
-                "failed" => Color::Red,
-                "inactive" => Color::Gray,
-                "activating" => Color::Yellow,
-                "deactivating" => Color::Yellow,
-                _ => Color::White,
+                "active" => crate::palette::green(),
+                "failed" => crate::palette::red(),
+                "inactive" => crate::palette::gray(),
+                "activating" => crate::palette::yellow(),
+                "deactivating" => crate::palette::yellow(),
+                _ => crate::palette::white(),
             };
 
             Row::new(vec![
                 Span::styled(unit.state_indicator(), Style::default().fg(state_color)),
                 Span::raw(&unit.name),
-                Span::styled(&unit.description, Style::default().fg(Color::Gray)),
+                Span::styled(
+                    &unit.description,
+                    Style::default().fg(crate::palette::gray()),
+                ),
             ])
             .style(style)
         })
         .collect();
 
-    let table = Table::new(rows, vec![
-        Constraint::Length(6),
-        Constraint::Length(35),
-        Constraint::Min(10),
-    ])
+    let table = Table::new(
+        rows,
+        vec![
+            Constraint::Length(6),
+            Constraint::Length(35),
+            Constraint::Min(10),
+        ],
+    )
     .header(header)
     .block(block);
 
@@ -845,17 +832,22 @@ fn draw_unit_tree(ctx: &UnitsContext, f: &mut Frame, area: Rect, visible_rows: u
 
     let expanded_count = ctx.tree_items.len();
     let total_count = ctx.filtered_units.len();
-    let group_count = ctx.tree_items.iter().filter(|i| matches!(i, TreeItem::Group { .. })).count();
+    let group_count = ctx
+        .tree_items
+        .iter()
+        .filter(|i| matches!(i, TreeItem::Group { .. }))
+        .count();
 
     let title = if ctx.show_filter {
         format!(" Units [tree] [filter: {}]{} ", ctx.filter, sort_indicator)
     } else {
-        format!(" Units [tree] {}/{} in {} groups{} ", expanded_count, total_count, group_count, sort_indicator)
+        format!(
+            " Units [tree] {}/{} in {} groups{} ",
+            expanded_count, total_count, group_count, sort_indicator
+        )
     };
 
-    let block = Block::default()
-        .title(title)
-        .borders(Borders::ALL);
+    let block = Block::default().title(title).borders(Borders::ALL);
 
     if ctx.loading {
         let loading = Paragraph::new("Loading units...").block(block);
@@ -892,31 +884,35 @@ fn draw_unit_tree(ctx: &UnitsContext, f: &mut Frame, area: Rect, visible_rows: u
         let is_selected = actual_idx == ctx.selected;
         let style = if is_selected {
             Style::default()
-                .bg(Color::DarkGray)
+                .bg(crate::palette::dark_gray())
                 .add_modifier(Modifier::BOLD)
         } else {
             Style::default()
         };
 
         match item {
-            TreeItem::Group { name, count, active } => {
+            TreeItem::Group {
+                name,
+                count,
+                active,
+            } => {
                 let is_collapsed = ctx.collapsed_groups.contains(name);
                 let icon = if is_collapsed { "▶" } else { "▼" };
-                text_lines.push(Line::from(vec![
-                    Span::styled(
-                        format!("{} {} ({} / {} active)", icon, name, active, count),
-                        style.fg(Color::Cyan).add_modifier(Modifier::BOLD),
-                    ),
-                ]));
+                text_lines.push(Line::from(vec![Span::styled(
+                    format!("{} {} ({} / {} active)", icon, name, active, count),
+                    style
+                        .fg(crate::palette::cyan())
+                        .add_modifier(Modifier::BOLD),
+                )]));
             }
             TreeItem::Unit { unit } => {
                 let state_color = match unit.active_state.as_str() {
-                    "active" => Color::Green,
-                    "failed" => Color::Red,
-                    "inactive" => Color::Gray,
-                    "activating" => Color::Yellow,
-                    "deactivating" => Color::Yellow,
-                    _ => Color::White,
+                    "active" => crate::palette::green(),
+                    "failed" => crate::palette::red(),
+                    "inactive" => crate::palette::gray(),
+                    "activating" => crate::palette::yellow(),
+                    "deactivating" => crate::palette::yellow(),
+                    _ => crate::palette::white(),
                 };
 
                 text_lines.push(Line::from(vec![
@@ -925,7 +921,10 @@ fn draw_unit_tree(ctx: &UnitsContext, f: &mut Frame, area: Rect, visible_rows: u
                     Span::raw(" "),
                     Span::styled(&unit.name, style),
                     Span::raw(" "),
-                    Span::styled(&unit.description, Style::default().fg(Color::Gray)),
+                    Span::styled(
+                        &unit.description,
+                        Style::default().fg(crate::palette::gray()),
+                    ),
                 ]));
             }
         }
@@ -936,13 +935,19 @@ fn draw_unit_tree(ctx: &UnitsContext, f: &mut Frame, area: Rect, visible_rows: u
 }
 
 fn draw_unit_popup(ctx: &UnitsContext, f: &mut Frame, area: Rect) {
-    let Some(unit) = ctx.detail_unit.as_ref() else { return; };
+    let Some(unit) = ctx.detail_unit.as_ref() else {
+        return;
+    };
 
     f.render_widget(Clear, area);
     let popup = centered_rect(100, 100, area);
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(8), Constraint::Min(6), Constraint::Length(3)])
+        .constraints([
+            Constraint::Length(8),
+            Constraint::Min(6),
+            Constraint::Length(3),
+        ])
         .split(popup);
 
     let meta_lines = vec![
@@ -951,27 +956,35 @@ fn draw_unit_popup(ctx: &UnitsContext, f: &mut Frame, area: Rect) {
         Line::from(format!("Load: {}", unit.load_state)),
         Line::from(format!("Active: {}", unit.active_state)),
         Line::from(format!("Sub: {}", unit.sub_state)),
-        Line::from("Actions: s=start x=stop e=enable d=disable r=refresh f=follow g=top G=bottom q=back"),
+        Line::from(
+            "Actions: s=start x=stop e=enable d=disable r=refresh f=follow g=top G=bottom q=back",
+        ),
     ];
 
     f.render_widget(
-        Paragraph::new(meta_lines)
-            .block(Block::default().title(" Unit Metadata ").borders(Borders::ALL)),
+        Paragraph::new(meta_lines).block(
+            Block::default()
+                .title(" Unit Metadata ")
+                .borders(Borders::ALL),
+        ),
         chunks[0],
     );
 
     let log_lines: Vec<Line> = if ctx.detail_logs.is_empty() {
         vec![Line::from("No logs for this unit")]
     } else {
-        ctx.detail_logs.iter().map(|entry| {
-            Line::from(vec![
-                Span::styled(
-                    format!("{:15} ", entry.display_time),
-                    Style::default().fg(Color::Gray),
-                ),
-                Span::raw(&entry.message),
-            ])
-        }).collect()
+        ctx.detail_logs
+            .iter()
+            .map(|entry| {
+                Line::from(vec![
+                    Span::styled(
+                        format!("{:15} ", entry.display_time),
+                        Style::default().fg(crate::palette::gray()),
+                    ),
+                    Span::raw(&entry.message),
+                ])
+            })
+            .collect()
     };
 
     let visible = chunks[1].height.saturating_sub(2) as usize;
@@ -979,19 +992,25 @@ fn draw_unit_popup(ctx: &UnitsContext, f: &mut Frame, area: Rect) {
     let scroll = ctx.detail_log_scroll.min(max_scroll) as u16;
 
     f.render_widget(
-        Paragraph::new(log_lines)
-            .scroll((scroll, 0))
-            .block(
-                Block::default()
-                    .title(format!(
-                        " Recent Logs [{} / {}] {}{} ",
-                        scroll,
-                        max_scroll,
-                        if ctx.detail_log_follow { "[follow] " } else { "" },
-                        if ctx.detail_log_scroll > max_scroll { "[bottom]" } else { "" }
-                    ))
-                    .borders(Borders::ALL),
-            ),
+        Paragraph::new(log_lines).scroll((scroll, 0)).block(
+            Block::default()
+                .title(format!(
+                    " Recent Logs [{} / {}] {}{} ",
+                    scroll,
+                    max_scroll,
+                    if ctx.detail_log_follow {
+                        "[follow] "
+                    } else {
+                        ""
+                    },
+                    if ctx.detail_log_scroll > max_scroll {
+                        "[bottom]"
+                    } else {
+                        ""
+                    }
+                ))
+                .borders(Borders::ALL),
+        ),
         chunks[1],
     );
 
@@ -1004,8 +1023,7 @@ fn draw_unit_popup(ctx: &UnitsContext, f: &mut Frame, area: Rect) {
     };
 
     f.render_widget(
-        Paragraph::new(status)
-            .block(Block::default().title(" Status ").borders(Borders::ALL)),
+        Paragraph::new(status).block(Block::default().title(" Status ").borders(Borders::ALL)),
         chunks[2],
     );
 }
@@ -1042,9 +1060,9 @@ fn draw_details(ctx: &UnitsContext, f: &mut Frame, area: Rect) {
 
     if let Some(unit) = ctx.selected_unit() {
         let state_color = match unit.active_state.as_str() {
-            "active" => Color::Green,
-            "failed" => Color::Red,
-            _ => Color::Gray,
+            "active" => crate::palette::green(),
+            "failed" => crate::palette::red(),
+            _ => crate::palette::gray(),
         };
 
         let lines = vec![
@@ -1055,14 +1073,19 @@ fn draw_details(ctx: &UnitsContext, f: &mut Frame, area: Rect) {
             Line::from(vec![
                 Span::raw("State: "),
                 Span::styled(
-                    format!("{} ({}/{})", unit.state_indicator(), unit.active_state, unit.sub_state),
+                    format!(
+                        "{} ({}/{})",
+                        unit.state_indicator(),
+                        unit.active_state,
+                        unit.sub_state
+                    ),
                     Style::default().fg(state_color),
                 ),
             ]),
             Line::from(vec![Span::raw(format!("Load: {}", unit.load_state))]),
-            Line::from(vec![
-                Span::raw("Enter:toggle e:expand-all c:collapse-all t:view s:sort"),
-            ]),
+            Line::from(vec![Span::raw(
+                "Enter:toggle e:expand-all c:collapse-all t:view s:sort",
+            )]),
         ];
 
         let details = Paragraph::new(lines).block(block);
@@ -1070,12 +1093,12 @@ fn draw_details(ctx: &UnitsContext, f: &mut Frame, area: Rect) {
     } else {
         // Check if we're on a group
         let group_name = if ctx.view_mode == ViewMode::Tree {
-            ctx.tree_items.get(ctx.selected).and_then(|item| {
-                match item {
+            ctx.tree_items
+                .get(ctx.selected)
+                .and_then(|item| match item {
                     TreeItem::Group { name, .. } => Some(name.clone()),
                     _ => None,
-                }
-            })
+                })
         } else {
             None
         };
@@ -1084,7 +1107,12 @@ fn draw_details(ctx: &UnitsContext, f: &mut Frame, area: Rect) {
             vec![
                 Line::from(vec![
                     Span::raw("Group: "),
-                    Span::styled(name, Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+                    Span::styled(
+                        name,
+                        Style::default()
+                            .fg(crate::palette::cyan())
+                            .add_modifier(Modifier::BOLD),
+                    ),
                 ]),
                 Line::from("Press Enter to toggle expansion"),
                 Line::from("e:expand-all c:collapse-all t:view s:sort"),

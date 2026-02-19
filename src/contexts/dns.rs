@@ -2,10 +2,10 @@ use crate::contexts::Context;
 use anyhow::Result;
 use crossterm::event::KeyEvent;
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Cell, Paragraph, Row, Table},
     Frame,
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{Modifier, Style},
+    widgets::{Block, Borders, Cell, Paragraph, Row, Table},
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
@@ -44,7 +44,9 @@ impl DnsInfo {
         let dns: Vec<(i32, i32, Vec<u8>)> = proxy.get_property("DNS")?;
         let fallback_dns_raw: Vec<(i32, i32, Vec<u8>)> = proxy.get_property("FallbackDNS")?;
         let domains: Vec<(i32, String, bool)> = proxy.get_property("Domains")?;
-        let dnssec: String = proxy.get_property("DNSSEC").unwrap_or_else(|_| "unknown".to_string());
+        let dnssec: String = proxy
+            .get_property("DNSSEC")
+            .unwrap_or_else(|_| "unknown".to_string());
         let dnsovertls: String = proxy
             .get_property("DNSOverTLS")
             .unwrap_or_else(|_| "unknown".to_string());
@@ -244,7 +246,9 @@ impl Context for DnsContext {
     fn handle_key(&mut self, key: KeyEvent) {
         match key.code {
             crossterm::event::KeyCode::Char('r') => self.refresh(),
-            crossterm::event::KeyCode::Char('j') | crossterm::event::KeyCode::Down => self.move_down(),
+            crossterm::event::KeyCode::Char('j') | crossterm::event::KeyCode::Down => {
+                self.move_down()
+            }
             crossterm::event::KeyCode::Char('k') | crossterm::event::KeyCode::Up => self.move_up(),
             _ => {}
         }
@@ -291,7 +295,8 @@ fn draw_global_dns(ctx: &DnsContext, f: &mut Frame, area: Rect) {
             Row::new(vec!["Search Domains", &search_str]),
         ];
 
-        let table = Table::new(rows, vec![Constraint::Length(16), Constraint::Min(40)]).block(block);
+        let table =
+            Table::new(rows, vec![Constraint::Length(16), Constraint::Min(40)]).block(block);
 
         f.render_widget(table, area);
     } else {
@@ -322,11 +327,11 @@ fn draw_interface_dns(ctx: &DnsContext, f: &mut Frame, area: Rect) {
             .map(|(i, iface)| {
                 let name_style = if i == ctx.selected_interface {
                     Style::default()
-                        .fg(Color::Black)
-                        .bg(Color::Cyan)
+                        .fg(crate::palette::black())
+                        .bg(crate::palette::cyan())
                         .add_modifier(Modifier::BOLD)
                 } else {
-                    Style::default().fg(Color::Cyan)
+                    Style::default().fg(crate::palette::cyan())
                 };
 
                 Row::new(vec![
@@ -339,7 +344,11 @@ fn draw_interface_dns(ctx: &DnsContext, f: &mut Frame, area: Rect) {
 
         let table = Table::new(
             rows,
-            vec![Constraint::Length(16), Constraint::Length(30), Constraint::Min(20)],
+            vec![
+                Constraint::Length(16),
+                Constraint::Length(30),
+                Constraint::Min(20),
+            ],
         )
         .header(header)
         .block(block);

@@ -1,11 +1,11 @@
 use crate::contexts::Context;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
+    Frame,
     layout::Rect,
-    style::{Color, Style},
+    style::Style,
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
-    Frame,
 };
 use std::collections::VecDeque;
 use std::ffi::{CStr, CString};
@@ -197,18 +197,18 @@ impl Context for LogsContext {
                 let actual_idx = scroll_offset + i;
                 let is_selected = actual_idx == self.selected;
                 let bg_style = if is_selected {
-                    Style::default().bg(Color::DarkGray)
+                    Style::default().bg(crate::palette::dark_gray())
                 } else {
                     Style::default()
                 };
 
                 let priority_color = match entry.priority {
-                    0..=2 => Color::Red,
-                    3 => Color::LightRed,
-                    4 => Color::Yellow,
-                    5 => Color::Green,
-                    6 => Color::Blue,
-                    _ => Color::Gray,
+                    0..=2 => crate::palette::red(),
+                    3 => crate::palette::light_red(),
+                    4 => crate::palette::yellow(),
+                    5 => crate::palette::green(),
+                    6 => crate::palette::blue(),
+                    _ => crate::palette::gray(),
                 };
 
                 let msg = if entry.message.len() > 200 {
@@ -220,11 +220,11 @@ impl Context for LogsContext {
                 Line::from(vec![
                     Span::styled(
                         format!("{:15} ", entry.display_time),
-                        Style::default().fg(Color::Gray),
+                        Style::default().fg(crate::palette::gray()),
                     ),
                     Span::styled(
                         format!("{:20} ", &entry.unit[..entry.unit.len().min(20)]),
-                        Style::default().fg(Color::Cyan),
+                        Style::default().fg(crate::palette::cyan()),
                     ),
                     Span::styled(msg, Style::default().fg(priority_color)),
                 ])
@@ -273,7 +273,8 @@ impl JournalReader {
         let mut out = Vec::new();
         unsafe {
             let mut j: *mut c_void = std::ptr::null_mut();
-            if sd_journal_open(&mut j as *mut *mut c_void, SD_JOURNAL_LOCAL_ONLY) < 0 || j.is_null() {
+            if sd_journal_open(&mut j as *mut *mut c_void, SD_JOURNAL_LOCAL_ONLY) < 0 || j.is_null()
+            {
                 return out;
             }
 
@@ -301,7 +302,8 @@ impl JournalReader {
         let mut out = Vec::new();
         unsafe {
             let mut j: *mut c_void = std::ptr::null_mut();
-            if sd_journal_open(&mut j as *mut *mut c_void, SD_JOURNAL_LOCAL_ONLY) < 0 || j.is_null() {
+            if sd_journal_open(&mut j as *mut *mut c_void, SD_JOURNAL_LOCAL_ONLY) < 0 || j.is_null()
+            {
                 return out;
             }
 
@@ -361,11 +363,7 @@ fn read_current_entry(j: *mut c_void) -> Option<LogEntry> {
 fn get_realtime_usec(j: *mut c_void) -> Option<u64> {
     let mut ts = 0u64;
     let rc = unsafe { sd_journal_get_realtime_usec(j, &mut ts as *mut u64) };
-    if rc >= 0 {
-        Some(ts)
-    } else {
-        None
-    }
+    if rc >= 0 { Some(ts) } else { None }
 }
 
 fn get_field(j: *mut c_void, field: &str) -> Option<String> {
